@@ -9,6 +9,7 @@ import numpy  as np
 from scipy import signal as sig
 from scipy import io as sio
 from matplotlib import pyplot as plt
+from scipy.interpolate import CubicSpline
 
 # 4) En el archivo ECG_TP4.mat encontrará un registro electrocardiográfico (ECG)
 # registrado durante una prueba de esfuerzo, junto con una serie de variables
@@ -343,3 +344,58 @@ line[0].set_label('ventriculares')
 line[0].set_label('normales')
 plt.title('Latidos muestra completa filtrados, sin agrupar')
 plt.legend();
+
+#%%
+# Filtrado no lineal
+
+d1 = qrs_detections-80
+cs_y = ecg_lead[d1]
+cs_x = t[d1]
+cs = CubicSpline(cs_x, cs_y)
+
+#%%
+# Filtro de mediana
+
+med200 = sig.medfilt(ecg_lead, kernel_size=201)
+med600 = sig.medfilt(med200, kernel_size=601)
+
+#%%
+plt.figure(11).clf()
+plt.plot(ecg_lead, ':', label='Original')
+plt.plot(td*fs, ecg_lead[qrs_detections], 
+         'x', label='detections')
+plt.plot(cs_x*fs, cs_y, 'o', label='Pt Ref')
+plt.plot(cs(t), label='Cubic Spline')
+plt.legend(loc='lower center')
+plt.title('Filtro CubicSpline - Línea de base')
+
+#%%
+fig = plt.figure(12)
+fig.clf()
+(ax1,ax2) = fig.subplots(2,1, sharex=True)
+
+ax1.plot(ecg_lead, ':', linewidth=0.8, label='Original')
+ax1.plot(med200, '--', label='median 200')
+ax1.plot(med600, label='median 600')
+ax1.plot(cs(t),  label='cubic spline')
+ax1.legend(loc='lower left')
+ax1.set_title('Filtros no lineales - Línea de base')
+
+ax2.plot(ecg_lead, ':', linewidth=0.8, label='Original')
+ax2.plot([0])
+ax2.plot(ecg_lead-med600, label='Filtrada (mediana)')
+ax2.plot(ecg_lead-cs(t), label='Filtrada (CSpline)')
+ax2.legend(loc='lower left')
+ax2.set_title('Filtros no lineales - Comparativa')
+
+#%%
+# Comparativa filtros lineales vs no lineales
+plt.figure(13).clf()
+
+plt.plot(ecg_lead, ':', linewidth=0.8, label='Original')
+plt.plot(ecg_filt, label='IIR')
+plt.plot(ecg_lead-med600, label='Mediana')
+plt.plot(ecg_lead-cs(t), label='CSpline')
+plt.legend(loc='lower left')
+plt.title('Filtros lineales y no lineales')
+
